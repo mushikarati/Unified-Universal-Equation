@@ -1,0 +1,7 @@
+[package]
+name = "codex-engine"
+version = "0.1.0"
+lean_version = "lean4"
+
+[dependencies]
+mathlib = { git = "https://github.com/leanprover-community/mathlib4", branch = "master" }
