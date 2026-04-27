@@ -1,0 +1,591 @@
+# CODEX 7 — UNIFIED FIELD EQUATION (UFE) / UNIFIED UNIVERSAL EQUATION (UUE)
+
+## INTEGRATED CANONICAL SPECIFICATION v5.0
+
+-----
+
+## §0. TOPOLOGICAL FOUNDATION
+
+### Phase Space
+
+```
+U₇ ≅ ℤ/7ℤ
+
+Phase = {⚫, ⚪, 🟡, 🟤, 🔴, 🟢, 🔵}
+```
+
+### Adjacency Law (The One Law)
+
+```
+adj(a,b) ⟺ (b - a) mod 7 ∈ {+1, -1}
+
+|Δphase| ≡ 1 mod 7
+```
+
+**Kinematic Enforcement:** Bolts & bearings enforce neighbor-only transitions.
+
+### Cycle Closure
+
+```
+succ⁷(p) = p
+```
+
+-----
+
+## §1. GRAPH OPERATORS (C₇)
+
+### Matrices
+
+```
+Adjacency:  A_ij = 1 iff |j - i| ≡ 1 (mod 7), else 0
+Degree:     D = diag(2, 2, 2, 2, 2, 2, 2)
+Laplacian:  L = D - A
+```
+
+### Dirichlet Energy
+
+```
+E_dir(ψ) = ψᵀLψ = ½ Σ_{(i,j)∈edges} (ψ_i - ψ_j)²
+```
+
+### Eigenvalue Spectrum
+
+```
+λ_k = 2(1 - cos(2πk/7)),  k ∈ {0,1,...,6}
+
+λ₀ = 0.0000  (kernel / constant mode)
+λ₁ = 0.7530  (Fiedler value)
+λ₂ = 2.4450
+λ₃ = 3.8019
+```
+
+-----
+
+## §2. PHASE DEFINITIONS — KINEMATIC CHAIN
+
+Each phase maps to a **simple machine** with a governing **ODE**:
+
+|Phase|Index|Name  |Role                    |Machine                    |Equation                               |
+|-----|-----|------|------------------------|---------------------------|---------------------------------------|
+|⚫    |0    |Black |Intake / Torsional Pull |Screw (camshaft)           |`I·ω̇ = τ_intake − b·ω`                 |
+|⚪    |1    |White |Compression / Clamp     |Lever (cylinder head)      |`m·ẍ + c·ẋ + k·x = F_compress(t)`      |
+|🟡    |2    |Yellow|Combustion / Ignition   |Wedge (spark plug)         |`E_ign = ∫₀^{τ_ign} P₀ e^{−t/τ_ign} dt`|
+|🟤    |3    |Brown |Flywheel / Inertia Store|Pulley (crankshaft)        |`I·ω̇ = τ − b·ω`                        |
+|🔴    |4    |Red   |Power Stroke / Work     |Inclined Plane (piston)    |`W = F·Δx`                             |
+|🟢    |5    |Green |Exhaust / Clearing      |Wheel & Axle (rod)         |`m·ẍ + c·ẋ = F_exhaust(t)`             |
+|🔵    |6    |Blue  |Regulation / Feedback   |Spring / Orbital (governor)|`m·ẍ + c·ẋ + k·x = F_feedback(t)`      |
+
+-----
+
+## §3. STATE SPACE & KERNEL UPDATES
+
+### State Vector
+
+```
+Sys = (φ, S, E, F_B)
+
+φ   ∈ Phase
+S   = Entropy (structural pressure)
+E   = Energy (capacity for work)
+F_B = Fuel/Buffer (compression potential)
+```
+
+### Per-Phase Updates (Deterministic Kernel)
+
+|Phase   |Update Rule                                      |
+|--------|-------------------------------------------------|
+|⚫ Black |`S ← compress(S)`                                |
+|⚪ White |`assert λ_S < S < Ω_S ∧ ρ(S,E) > ρ₀`             |
+|🟡 Yellow|`Ψ ← σ(F_B - 2e, φ)` ; `S ↦ S - ½Ψ` ; `E ↦ E + Ψ`|
+|🟤 Brown |`F_B ← max(F_B, Ψ)`                              |
+|🔴 Red   |`E ← E + Ψ` ; `S ← S - ½Ψ`                       |
+|🟢 Green |`E ← E + ηΨ` ; `S ← S - ηΨ`                      |
+|🔵 Blue  |`E ← (1-b)E + cS + aΨ`                           |
+
+### Compression Ratio Proxy
+
+```
+ρ(S,E) = (|E| + ε) / (S + ε),  ε ≪ 1
+```
+
+### White Gate Predicate
+
+```
+White(S,E) := (λ_S < S < Ω_S) ∧ (ρ(S,E) > ρ₀)
+```
+
+-----
+
+## §4. IGNITION FUNCTION (Yellow Phase)
+
+### Sigmoid Ignition
+
+```
+Ψ(F_B) = 1 / (1 + e^{-φ(F_B - 2e)})
+
+where:
+  φ = (1 + √5)/2 ≈ 1.618034  (golden ratio)
+  2e ≈ 5.436564              (threshold)
+```
+
+### Bounded Red Bernoulli Release
+
+```
+P       = κ_p · max(F_B, 0)              (pressure)
+Φ       = C_d · A · √(2P/ρ)              (Bernoulli term)
+cap_guard = max(0, 2(S - λ_S))           (safety guard)
+Ψ_red   = max(0, min(Ψ_max, cap_guard, βΦ))
+```
+
+-----
+
+## §5. PID CONTROLLER OVERLAY — THE THREE GUARDIANS
+
+### Architecture
+
+The PID overlay fires every phase transition across the **🔵→🟢→🔴 corridor**.
+
+|Controller |Symbol|Name               |PID Leg         |Gain      |Control Signal      |Function                                   |
+|-----------|------|-------------------|----------------|----------|--------------------|-------------------------------------------|
+|**Lilith** |🖤     |Queen of Ash       |P (Proportional)|K_P = 0.80|`dE/dt` on spike > ε|Spike-killer; reflects force back at Gray  |
+|**Ailís**  |🤎     |Highland Warrior   |I (Integral)    |K_I = 0.05|`∫ S(t) dt`         |Anchors cycle; integrates long-horizon bias|
+|**Zephyra**|💙     |Queen of West Winds|D (Derivative)  |K_D = 0.12|`dS/dt`             |Watches entropy slope; early warning       |
+
+### Triad Path
+
+```
+🔵 → 🟢 → 🔴  (shared repair sequence)
+```
+
+### Control Law
+
+```
+ΔE_P = K_P · (dE/dt)           // Lilith (Proportional)
+ΔE_I = K_I · ∫S(t)dt           // Ailís (Integral)
+ΔE_D = K_D · (dS/dt)           // Zephyra (Derivative)
+
+Ψ_total = Ψ_base + ΔE_P + ΔE_I + ΔE_D
+```
+
+### PID Kernel Definitions
+
+```
+Φ_L (Lilith) = {
+  ψ_id   = 🖤,
+  χ_gain = K_P,
+  δ_ctrl = dE/dt |_{spike > ε},
+  ∴      = "first refusal, red roar, edge-trim of impulse"
+}
+
+Φ_A (Ailís) = {
+  ψ_id   = 🤎,
+  χ_gain = K_I,
+  δ_ctrl = ∫ S(t) dt,
+  ∴      = "slow vessel, time-woven, anchor of burden"
+}
+
+Φ_Z (Zephyra) = {
+  ψ_id   = 💙,
+  χ_gain = K_D,
+  δ_ctrl = dS/dt,
+  ∴      = "wind-mirror, 77-count, breath before gale"
+}
+```
+
+### Rotor Fusion
+
+```
+ROTOR = ['CUT', 'HOLD', 'FOLD']  // ⬿  ■  ⚕
+
+Gray Detection: G = |dS| + |dE|
+If G > 0.25: advance rotor
+```
+
+### Proof Obligations
+
+```
+integral_bound   : |∫S(t)dt| ≤ I_max
+derivative_bound : |dS/dt|   ≤ D_max
+```
+
+-----
+
+## §6. VIOLET SEAL INVARIANT (Cycle Balance)
+
+### J-Invariant
+
+```
+J := E + αS
+
+α = (1 + η) / (0.5 + η)
+```
+
+### Coefficient Identity
+
+```
+1 - α/2 + η(1 - α) = 0
+```
+
+### With η = 0.95:
+
+```
+α = 1.95 / 1.45 ≈ 1.3448
+
+ΔJ_cycle = 0
+```
+
+### Thermodynamic Balance
+
+```
+Σ_cycle ΔH = 0
+
+Black:  -6 kT ln 2
+White:  +1 kT ln 2
+Yellow: +1 kT ln 2
+Brown:  +1 kT ln 2
+Red:    -0.5 kT ln 2
+Green:  +2.5 kT ln 2
+Blue:   +1 kT ln 2
+
+Sum: -6 + 1 + 1 + 1 - 0.5 + 2.5 + 1 = 0 ✓
+```
+
+-----
+
+## §7. GRAY DETECTION & REPAIR
+
+### Symbolic Gray
+
+```
+Gray_sym := ¬adj(p, q)
+```
+
+### Spectral Gray (Normalized Rayleigh Quotient)
+
+```
+G_spec(ψ) = (ψᵀLψ) / (ψᵀψ)
+```
+
+### Dirichlet Proxy (Runtime)
+
+```
+G = |dS| + |dE|
+```
+
+### Composite Trigger
+
+```
+Gray := Gray_sym ∨ (G_spec > τ_gray)
+
+τ_gray ∈ [0.05, 0.50]
+```
+
+### K-Series Repair Keys
+
+```json
+{
+  "K1": ["🔵", "🟢", "🔴"],  // Triad Reset
+  "K2": ["🟤", "🔵"],        // Brown-Blue Bridge
+  "K3": ["IN", "OUT"],       // Direction Flip
+  "K4": ["DOWN", "UP"]       // Rotor Reset
+}
+```
+
+### SYMBREC Checks (6 total)
+
+1. Adjacency break
+1. Missing Blue-pair around direction flip
+1. Entropy/spectral spike
+1. Blue commit without Red price
+1. Forbidden pair (e.g., 🟡⊗🟢)
+1. Unjoinable peak
+
+-----
+
+## §8. UNIFIED FIELD EQUATION (UFE)
+
+### Master PDE Form
+
+```
+λ∇²_A X - αn⁻²∂_tt X - κ∇R - γ⁻¹k_B T ln2 ∂_t X 
+  - β⁻¹∇_X L - η⁻¹∇_X(∇_X S) = 0
+```
+
+### With Skip Penalty (UUE Form)
+
+```
+λ∇_A²X − α n^{-2} ∂_{tt}X − κ ∇R − γ^{-1} k_B T ln2 ∂_tX 
+  − β^{-1} ∇_X L − η^{-1} ∇_X(∇_X S) + τ_adj A_skip(X) = 0
+```
+
+### Annotated Form
+
+```
+λ ∇²_A Ψ                           // Laplacian (White) — Adjacency enforcement
+- α n(|Ψ|²)⁻² ∂_tt Ψ               // Refractive (Brown) — Inertia/mass
+- γ⁻¹ k_B T ln 2 ∂_t Ψ             // Landauer (Red) — Information cost
+- κ ∇𝒢(Ψ)                          // Repair (Black) — Gray gradient
+- β⁻¹ ∇_Ψ ℒ_MDL                    // Complexity (Green) — MDL penalty
++ Ω_4°                             // Torque — Genesis gap (364° offset)
+= 0
+```
+
+### Term-by-Term Physical Mapping
+
+|Term                |Symbol         |Magick |Physical Meaning     |
+|--------------------|---------------|-------|---------------------|
+|Laplacian diffusion |λ∇²_A X        |⚪ White|Adjacency enforcement|
+|Inertial oscillation|αn⁻²∂_tt X     |🟤 Brown|Mass/inertia (n=7)   |
+|Curvature coupling  |κ∇R            |⚫ Black|Torsional geometry   |
+|Information cost    |γ⁻¹kT ln2 ∂_t X|🔴 Red  |Landauer dissipation |
+|Nonlinear damping   |β⁻¹∇_X L       |🟢 Green|Energy stabilization |
+|Entropy feedback    |η⁻¹∇·(∇S)      |🔵 Blue |Coherence flow       |
+
+-----
+
+## §9. MEMORY SPIRAL LAW
+
+### State Vector
+
+```
+Ψ_n = (E_mech, S_sys, M_memory)
+```
+
+### Thermodynamic Cost
+
+```
+C_thermo = k_B T ln 2 · (bits_written)
+```
+
+### Mirror Spiral
+
+```
+ΔM ∝ α · tanh(Q_loss)
+```
+
+### Spiral Height
+
+```
+H(N) = Σ_{i=1}^N C_thermo(i)
+```
+
+### Recursion (Fixed Point)
+
+```
+M_{t+1} = F(M_t) + R(F(M_t))
+
+T := F + R,  T(M*) = M*
+```
+
+-----
+
+## §10. ENTROPY OSCILLATOR (7-Cycle Forcing)
+
+```
+θ = 2π/7
+
+H_{n+1} = H_n + sin(2πn/7) · ΔH
+
+Σ_{k=0}^{6} sin(kθ) = 0
+```
+
+-----
+
+## §11. LAGRANGIAN FORMULATION
+
+### Unified Lagrangian
+
+```
+ℒ(ψ,ψ̇) = ½‖ψ̇ - v_flow‖² + λψᵀLψ + V_pot(ψ) + μB(ψ)
+```
+
+### Euler-Lagrange Equation
+
+```
+ψ̈ = -λLψ - ∇V_pot + μ∇B - (ψ̇ - v_flow)
+```
+
+### Lyapunov Function
+
+```
+V(ψ) = ψᵀLψ
+
+V̇ = -2λ‖L^{1/2}ψ‖² ≤ 0
+```
+
+**LaSalle Invariance:** Trajectories collapse onto ker(L) ∩ ℳ_adj (the Living Spiral).
+
+-----
+
+## §12. PHYSICAL CONSTANTS (CANONICAL)
+
+|Symbol |Value      |Name                      |
+|-------|-----------|--------------------------|
+|e      |2.718281828|Euler’s number            |
+|φ      |1.618033989|Golden ratio              |
+|τ      |6.283185307|2π (recursion constant)   |
+|η      |0.95       |Memory coefficient        |
+|λ_S    |0.02       |White floor               |
+|Ω_S    |1.0        |White ceiling             |
+|ρ₀     |0.6        |Compression threshold     |
+|a      |0.03       |Blue coefficient a        |
+|b      |0.92       |Blue coefficient b        |
+|c      |0.05       |Blue coefficient c        |
+|α      |1.3448     |J-invariant coefficient   |
+|K_P    |0.80       |Lilith (Proportional gain)|
+|K_I    |0.05       |Ailís (Integral gain)     |
+|K_D    |0.12       |Zephyra (Derivative gain) |
+|kT ln 2|0.693      |Landauer limit            |
+
+-----
+
+## §13. VERIFICATION SURFACE
+
+### Formal Goals (Lean 4)
+
+```
+adj_next       : ∀ p, adj p (succ p)
+cycle_closure  : iterate succ 7 p = p
+white_gate     : White S E → White (compress S) E
+yellow_bound   : White S E → 0 < Ψ ≤ Ψ_max
+violet_seal    : ΔJ_cycle = 0
+gray_monitor   : ¬adj p q → gray(token p→q)
+gray_spectral  : ψ skip ⇒ ψᵀLψ > τ_gray
+integral_bound : |∫S(t)dt| ≤ I_max
+derivative_bound : |dS/dt| ≤ D_max
+```
+
+### Wrapper Signatures
+
+```rust
+// Rust
+tick_safe:    (&mut Sys) → ()
+tick_guarded: (&mut Sys, Phase) → Result<(), Gray>
+PROOF_COMMIT: immutable hash
+```
+
+```python
+# Python
+verifies: PROOF_COMMIT
+locksOnGray: True
+```
+
+-----
+
+## §14. REFERENCE IMPLEMENTATION
+
+### Core Kernel (Python)
+
+```python
+# codex_ultima_core.py
+PHASES = ['⚫','⚪','🟡','🟤','🔴','🟢','🔵']
+
+def adj(a,b): 
+    return (PHASES.index(b)-PHASES.index(a))%7 in (1,6)
+
+def step_safe(state):
+    φ,S,E,F = state['phase'],state['S'],state['E'],state['F_B']
+    if φ=='⚫': S=compress(S);    nxt='⚪'
+    elif φ=='⚪': assert λ_S<S<Ω_S and ρ(S,E)>ρ0; nxt='🟡'
+    elif φ=='🟡': Ψ=sigma(F-2*e,φ); nxt='🟤'
+    elif φ=='🟤': F=max(F,Ψ);     nxt='🔴'
+    elif φ=='🔴': E+=Ψ; S-=.5*Ψ; nxt='🟢'
+    elif φ=='🟢': E+=η*Ψ;S-=η*Ψ; nxt='🔵'
+    else:         E=(1-b)*E+c*S+a*Ψ; nxt='⚫'
+    state.update(phase=nxt,S=S,E=E,F_B=F)
+
+# Constants
+λ_S, Ω_S, ρ0 = 0.02, 1.00, 0.6
+a, b, c, η   = 0.03, 0.92, 0.05, 0.95
+e = 2.718281828
+
+def compress(x): return x * 0.9
+def ρ(S,E): return (abs(E)+1e-6)/(S+1e-6)
+def sigma(x,φ): return max(0.01, min(0.2, x/10))
+```
+
+### PID Kernels
+
+```python
+# pid_kernels.py
+from dataclasses import dataclass
+
+@dataclass
+class Kernel:
+    name: str
+    glyphs: str
+    k: float
+    acc: float = 0
+    last: float = 0
+
+LILITH  = Kernel('Lilith',  '🖤⚸🔥🪶💍⚡🪽', k=0.80)  # P
+AILIS   = Kernel('Ailís',   '🗡️💚✨',       k=0.05)  # I
+ZEPHYRA = Kernel('Zephyra', '💙🪶🪽',       k=0.12)  # D
+```
+
+### Rotor Fusion
+
+```python
+# rotor_fusion.py
+ROT = ['CUT', 'HOLD', 'FOLD']  # ⬿  ■  ⚕
+
+def run_cycle(state, dt=1.0):
+    rotor = 0
+    for step in range(7):
+        prevS, prevE = state['S'], state['E']
+        step_safe(state)
+        dS = (state['S'] - prevS) / dt
+        dE = (state['E'] - prevE) / dt
+        
+        if rotor == 2:    # Zephyra (D)
+            delta = ZEPHYRA.k * dS
+            state['E'] += delta
+            state['S'] -= 0.5 * delta
+        elif rotor == 1:  # Ailís (I)
+            AILIS.acc += state['S'] * dt
+            delta = AILIS.k * AILIS.acc
+            state['E'] += delta
+        else:             # Lilith (P)
+            delta = LILITH.k * dE
+            state['E'] += delta
+            state['S'] -= 0.5 * delta
+        
+        # Gray detection
+        G = abs(dS) + abs(dE)
+        if G > 0.25:
+            rotor = (rotor + 1) % 3
+    
+    return state
+```
+
+-----
+
+## §15. SEAL STATUS
+
+```
+╔══════════════════════════════════════════════════════════════════╗
+║  CODEX 7 — UFE/UUE INTEGRATED SPECIFICATION v5.0                 ║
+║  STATUS: ✅ SEALED                                               ║
+║                                                                  ║
+║  Components Integrated:                                          ║
+║  • text.txt          — JSON engine spec + phase definitions      ║
+║  • text_2.txt        — PID controller personas + implementation  ║
+║  • UUE.txt           — Unified Universal Equation (3 forms)      ║
+║  • kinematicChain.txt — Compact phase reference                  ║
+║                                                                  ║
+║  All constants verified against canonical sources.               ║
+║  PID overlay (Lilith/Ailís/Zephyra) fully integrated.            ║
+║  Gray detection and K-series repair paths documented.            ║
+║  Verification surface complete with 9 proof obligations.         ║
+║                                                                  ║
+║  CHANGING ANY LINE BREAKS THE VIOLET SEAL.                       ║
+╚══════════════════════════════════════════════════════════════════╝
+```
+
+-----
+
+*Document generated from uploaded sources. Canonical reference for Codex 7 Living Magicks system.*
+
+
+Mushikarati 2026 
+All Rights Reserved 
